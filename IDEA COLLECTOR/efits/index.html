@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Idea Collector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #121212;
+      color: #f0f0f0;
+    }
+
+    body.dark input,
+    body.dark textarea {
+      background: #222;
+      color: #f0f0f0;
+      border-color: #555;
+    }
+
+    body.dark .idea-card {
+      background: #1e1e1e;
+      border-left-color: #00bfa6;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: inherit;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, textarea, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: white;
+      cursor: pointer;
+      border: none;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .idea-card {
+      background: #fff;
+      border-left: 5px solid #4caf50;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      position: relative;
+      transition: background 0.3s;
+    }
+
+    .idea-card h3 {
+      margin: 0 0 5px;
+    }
+
+    .idea-card small {
+      display: block;
+      color: gray;
+      margin-top: 5px;
+    }
+
+    .delete-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+
+    .top-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    #search-bar {
+      flex: 1;
+      min-width: 150px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💡 Idea Collector</h1>
+    
+    <div class="top-controls">
+      <button id="toggle-theme">🌙 Toggle Dark Mode</button>
+      <button id="export-btn">📁 Export Ideas</button>
+      <input type="text" id="search-bar" placeholder="Search ideas..." />
+    </div>
+
+    <form id="idea-form">
+      <input type="text" id="idea-title" placeholder="Idea title" required />
+      <textarea id="idea-desc" placeholder="Write your idea..." required></textarea>
+      <input type="text" id="idea-tags" placeholder="Tags (comma-separated)" />
+      <button type="submit">Add Idea</button>
+    </form>
+
+    <div id="ideas-list"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("idea-form");
+    const titleInput = document.getElementById("idea-title");
+    const descInput = document.getElementById("idea-desc");
+    const tagsInput = document.getElementById("idea-tags");
+    const ideasList = document.getElementById("ideas-list");
+    const searchBar = document.getElementById("search-bar");
+    const themeToggle = document.getElementById("toggle-theme");
+    const exportBtn = document.getElementById("export-btn");
+
+    let ideas = JSON.parse(localStorage.getItem("ideas")) || [];
+
+    function renderIdeas() {
+      const searchTerm = searchBar.value.toLowerCase();
+      ideasList.innerHTML = "";
+
+      ideas
+        .filter(idea =>
+          idea.title.toLowerCase().includes(searchTerm) ||
+          idea.desc.toLowerCase().includes(searchTerm) ||
+          (idea.tags && idea.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+        )
+        .forEach((idea, index) => {
+          const card = document.createElement("div");
+          card.className = "idea-card";
+          card.innerHTML = `
+            <h3>${idea.title}</h3>
+            <p>${idea.desc}</p>
+            ${idea.tags.length ? `<small>Tags: ${idea.tags.join(", ")}</small>` : ""}
+            <button class="delete-btn" onclick="deleteIdea(${index})">X</button>
+          `;
+          ideasList.appendChild(card);
+        });
+    }
+
+    function deleteIdea(index) {
+      ideas.splice(index, 1);
+      localStorage.setItem("ideas", JSON.stringify(ideas));
+      renderIdeas();
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const newIdea = {
+        title: titleInput.value,
+        desc: descInput.value,
+        tags: tagsInput.value.split(",").map(tag => tag.trim()).filter(Boolean),
+      };
+      ideas.push(newIdea);
+      localStorage.setItem("ideas", JSON.stringify(ideas));
+      titleInput.value = "";
+      descInput.value = "";
+      tagsInput.value = "";
+      renderIdeas();
+    });
+
+    searchBar.addEventListener("input", renderIdeas);
+
+    // Theme toggle
+    if (localStorage.getItem("theme") === "dark") {
+      document.body.classList.add("dark");
+    }
+
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    });
+
+    // Export button
+    exportBtn.addEventListener("click", () => {
+      const fileData = JSON.stringify(ideas, null, 2);
+      const blob = new Blob([fileData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.download = "ideas.json";
+      link.href = url;
+      link.click();
+    });
+
+   renderIdeas();
+  </script>
+</body>
+</html>
